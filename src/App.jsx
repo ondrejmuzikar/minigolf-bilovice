@@ -35,13 +35,18 @@ const sSet = async (key, val) => {
 
 const sendEmail = async (toEmail, nick, message) => {
   try {
-    window.emailjs.init("Q8fPVr7d3xnfuxPdT");
-    const r = await window.emailjs.send(
-      "service_69zehax",
-      "template_rfxyntm",
-      { to_email: toEmail, nick, message }
-    );
-    return r.status === 200;
+    const r = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        service_id: "service_69zehax",
+        template_id: "template_rfxyntm",
+        user_id: "Q8fPVr7d3xnfuxPdT",
+        accessToken: "Q8fPVr7d3xnfuxPdT",
+        template_params: { to_email: toEmail, nick, message },
+      }),
+    });
+    return r.ok;
   } catch { return false; }
 };
 
