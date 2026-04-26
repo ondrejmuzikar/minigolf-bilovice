@@ -35,10 +35,15 @@ const sSet = async (key, val) => {
 
 const sendEmail = async (toEmail, nick, message) => {
   try {
-    const r = await fetch("/api/send-email", {
+    const r = await fetch("https://api.web3forms.com/submit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ to: toEmail, nick, message }),
+      body: JSON.stringify({
+        access_key: "861ddb4e-0cc5-42e6-9af9-438e3aa8e16d",
+        to: toEmail,
+        subject: "Minigolf Bílovice — upozornění",
+        message: `Ahoj ${nick}!\n\n${message}\n\n— Minigolf Bílovice`,
+      }),
     });
     return r.ok;
   } catch { return false; }
