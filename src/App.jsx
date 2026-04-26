@@ -36,11 +36,11 @@ const sSet = async (key, val) => {
 
 const sendEmail = async (toEmail, nick, message) => {
   try {
+    await emailjs.init({ publicKey: "Q8fPVr7d3xnfuxPdT" });
     await emailjs.send(
       "service_69zehax",
       "template_rfxyntm",
-      { to_email: toEmail, nick, message },
-      "Q8fPVr7d3xnfuxPdT"
+      { to_email: toEmail, nick, message }
     );
     return true;
   } catch { return false; }
