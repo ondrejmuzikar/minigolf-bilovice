@@ -38,21 +38,23 @@ const sSet = async (key, val) => {
   try { localStorage.setItem(key, s); } catch {}
 };
 
-import emailjs from '@emailjs/browser';
-
 // Tuhle funkci dej někam k ostatním funkcím, nebo ji exportuj
 const sendEmail = async (toEmail, nick, message) => {
   try {
-    // Inicializace tvým veřejným klíčem
-    emailjs.init("Q8fPVr7d3xnfuxPdT");
+    // Tady jen voláš tu funkci z importu, nic nedeklaruješ!
+    emailjs.init("Q8fPVr7d3xnfuxPdT"); 
 
-    const templateParams = {
-      to_email: toEmail,
-      nick: nick,
-      message: message
-    };
+    await emailjs.send(
+      "service_69zehax",
+      "template_rfxyntm",
+      { to_email: toEmail, nick: nick, message: message }
+    );
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
 
-    const response = await emailjs.send(
       "service_69zehax", // Tvůj Service ID
       "template_rfxyntm", // Tvůj Template ID
       templateParams
