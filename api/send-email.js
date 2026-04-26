@@ -1,23 +1,20 @@
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).end();
-  
-    const { to, nick, message } = req.body;
-  
-    try {
-      const r = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          service_id: "service_69zehax",
-          template_id: "template_rfxyntm",
-          user_id: "Q8fPVr7d3xnfuxPdT",
-          accessToken: "Q8fPVr7d3xnfuxPdT",
-          template_params: { to_email: to, nick, message },
-        }),
-      });
-      const text = await r.text();
-      res.status(r.ok ? 200 : 400).json({ ok: r.ok, text });
-    } catch (e) {
-      res.status(500).json({ error: e.message });
-    }
+  if (req.method !== 'POST') return res.status(405).end();
+  const { to, nick, message } = req.body;
+  if (!to || !nick || !message) return res.status(400).json({ error: 'Missing fields' });
+  try {
+    await resend.emails.send({
+      from: 'Minigolf Bílovice <onboarding@resend.dev>',
+      to,
+      subject: 'Minigolf Bílovice — upozornění',
+      text: `Ahoj ${nick}!\n\n${message}\n\n— Minigolf Bílovice`,
+    });
+    res.status(200).json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
+}
