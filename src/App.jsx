@@ -38,16 +38,32 @@ const sSet = async (key, val) => {
   try { localStorage.setItem(key, s); } catch {}
 };
 
+import emailjs from '@emailjs/browser';
+
+// Tuhle funkci dej někam k ostatním funkcím, nebo ji exportuj
 const sendEmail = async (toEmail, nick, message) => {
   try {
-    await emailjs.send(
-      "service_69zehax",
-      "template_rfxyntm",
-      { to_email: toEmail, nick, message },
-      "Q8fPVr7d3xnfuxPdT"
+    // Inicializace tvým veřejným klíčem
+    emailjs.init("Q8fPVr7d3xnfuxPdT");
+
+    const templateParams = {
+      to_email: toEmail,
+      nick: nick,
+      message: message
+    };
+
+    const response = await emailjs.send(
+      "service_69zehax", // Tvůj Service ID
+      "template_rfxyntm", // Tvůj Template ID
+      templateParams
     );
+
+    console.log('Email úspěšně odeslán!', response.status, response.text);
     return true;
-  } catch { return false; }
+  } catch (error) {
+    console.error('Chyba při odesílání emailu:', error);
+    return false;
+  }
 };
 
 const notifyRankChange = async (oldSorted, newSorted) => {
