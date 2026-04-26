@@ -1,4 +1,3 @@
-import emailjs from '@emailjs/browser';
 import { useState, useEffect, useRef } from "react";
 
 const SK = {
@@ -36,13 +35,13 @@ const sSet = async (key, val) => {
 
 const sendEmail = async (toEmail, nick, message) => {
   try {
-    await emailjs.init({ publicKey: "Q8fPVr7d3xnfuxPdT" });
-    await emailjs.send(
+    window.emailjs.init("Q8fPVr7d3xnfuxPdT");
+    const r = await window.emailjs.send(
       "service_69zehax",
       "template_rfxyntm",
       { to_email: toEmail, nick, message }
     );
-    return true;
+    return r.status === 200;
   } catch { return false; }
 };
 
