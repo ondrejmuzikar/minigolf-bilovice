@@ -1,10 +1,6 @@
 import emailjs from '@emailjs/browser';
 import { useState, useEffect, useRef } from "react";
 
-const EJS_PUBLIC_KEY  = "Q8fPVr7d3xnfuxPdT";
-const EJS_SERVICE_ID  = "Gmail";
-const EJS_TEMPLATE_ID = "template_heeg1ec";
-
 const SK = {
   U15_ALL: "mg_u15_all", O15_ALL: "mg_o15_all",
   U15_SEZ: "mg_u15_sez", O15_SEZ: "mg_o15_sez",
@@ -38,34 +34,16 @@ const sSet = async (key, val) => {
   try { localStorage.setItem(key, s); } catch {}
 };
 
-// Tuhle funkci dej někam k ostatním funkcím, nebo ji exportuj
 const sendEmail = async (toEmail, nick, message) => {
   try {
-    // Tady jen voláš tu funkci z importu, nic nedeklaruješ!
-    emailjs.init("Q8fPVr7d3xnfuxPdT"); 
-
     await emailjs.send(
       "service_69zehax",
       "template_rfxyntm",
-      { to_email: toEmail, nick: nick, message: message }
+      { to_email: toEmail, nick, message },
+      "Q8fPVr7d3xnfuxPdT"
     );
     return true;
-  } catch (error) {
-    return false;
-  }
-};
-
-      "service_69zehax", // Tvůj Service ID
-      "template_rfxyntm", // Tvůj Template ID
-      templateParams
-    );
-
-    console.log('Email úspěšně odeslán!', response.status, response.text);
-    return true;
-  } catch (error) {
-    console.error('Chyba při odesílání emailu:', error);
-    return false;
-  }
+  } catch { return false; }
 };
 
 const notifyRankChange = async (oldSorted, newSorted) => {
@@ -99,11 +77,9 @@ const sendSeasonEnd = async (season, u15, o15) => {
   }
 };
 
-// ── Styles ──────────────────────────────────────────────────────────
 const inputCls = "w-full rounded-2xl border-2 border-gray-100 px-4 py-3 bg-gray-50 text-base font-semibold focus:outline-none focus:border-green-400 transition-colors";
 const cardShadow = { boxShadow: "0 2px 16px 0 rgba(0,0,0,0.07)" };
 
-// ── Overlay ─────────────────────────────────────────────────────────
 function Overlay({ children }) {
   return <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.78)" }}>{children}</div>;
 }
@@ -336,7 +312,6 @@ function LeaderboardPanel({ allKey, sezKey, label, color, isAdmin, season }) {
       {delTarget && <ConfirmDialog icon="🗑️" message={`Smazat hráče „${delTarget}"?`} yesLabel="Smazat" danger onYes={confirmDelete} onNo={() => setDelTarget(null)} />}
       {editTarget && <EditPlayerModal player={editTarget} onSave={handleEditSave} onCancel={() => setEditTarget(null)} />}
 
-      {/* Category header */}
       <div className="rounded-2xl px-5 py-3 mb-5 text-center font-black text-2xl text-white" style={{ background: color, boxShadow: "0 4px 20px 0 rgba(0,0,0,0.15)" }}>
         {label}
         {isAdmin && <span className="ml-2 text-xs bg-white bg-opacity-20 rounded-full px-2 py-0.5 font-bold">ADMIN</span>}
@@ -348,7 +323,6 @@ function LeaderboardPanel({ allKey, sezKey, label, color, isAdmin, season }) {
         </div>
       )}
 
-      {/* Entry form */}
       <div className="bg-white rounded-3xl p-4 mb-5" style={cardShadow}>
         <div className="text-xs font-bold text-gray-400 mb-4 uppercase tracking-widest">Přidat / aktualizovat výkon</div>
         <div className="flex flex-col gap-3 mb-3">
@@ -371,7 +345,6 @@ function LeaderboardPanel({ allKey, sezKey, label, color, isAdmin, season }) {
         </button>
       </div>
 
-      {/* View switcher */}
       <div className="flex rounded-2xl overflow-hidden mb-5 bg-white" style={cardShadow}>
         {[["sezona","Sezónní"],["vsechny","Historický"]].map(([val, lbl]) => (
           <button key={val} onClick={() => setView(val)} className="flex-1 py-3 text-sm font-black transition-all"
@@ -381,7 +354,6 @@ function LeaderboardPanel({ allKey, sezKey, label, color, isAdmin, season }) {
         ))}
       </div>
 
-      {/* Days remaining */}
       {view === "sezona" && season?.active && days !== null && (
         <div className="mb-5 rounded-2xl px-4 py-3 text-center text-sm font-bold border"
           style={{ background: days <= 7 ? "#fef2f2" : "#f0fdf4", borderColor: days <= 7 ? "#fca5a5" : "#86efac", color: days <= 7 ? "#dc2626" : "#15803d" }}>
@@ -389,7 +361,6 @@ function LeaderboardPanel({ allKey, sezKey, label, color, isAdmin, season }) {
         </div>
       )}
 
-      {/* Leaderboard list */}
       {!loaded ? (
         <div className="text-center text-gray-400 py-10">Načítám...</div>
       ) : displayList.length === 0 ? (
@@ -472,17 +443,13 @@ export default function App() {
         <ConfirmDialog icon="🏁" message={`Ukončit sezónu „${season?.label}"? Odešlou se výsledkové emaily.`}
           yesLabel="Ukončit sezónu" danger onYes={handleEndSeason} onNo={() => setShowEndSeason(false)} />
       )}
-
-<div style={{ width: "100%", maxWidth: "500px", padding: "40px 20px 60px 20px" }}>
-
-        {/* Logo */}
+      <div style={{ width: "100%", maxWidth: "500px", padding: "40px 20px 60px 20px" }}>
         <div className="text-center mb-7 select-none" onClick={handleLogoClick} style={{ cursor: "default" }}>
           <div style={{ fontSize: "72px", lineHeight: 1, marginBottom: "12px" }}>⛳</div>
           <h1 style={{ fontSize: "48px", fontWeight: 900, color: "#111827", letterSpacing: "-1px", lineHeight: 1.1 }}>Minigolf</h1>
           <p style={{ color: "#6b7280", fontWeight: 500, marginTop: "6px", fontSize: "14px" }}>Bílovice · Žebříček</p>
         </div>
 
-        {/* Season badge */}
         {season?.active && (
           <div className="mb-6 rounded-2xl px-4 py-3 text-center text-sm font-bold bg-green-100 text-green-800 border border-green-200">
             🏆 Aktivní sezóna: {season.label}
@@ -490,7 +457,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Admin panel */}
         {isAdmin && (
           <div className="mb-6 rounded-2xl p-5 bg-orange-50 border-2 border-orange-200">
             <div className="flex items-center justify-between mb-4">
@@ -507,7 +473,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Category tabs */}
         <div className="flex rounded-2xl overflow-hidden mb-6 bg-white" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.08)" }}>
           {TABS.map((tab, i) => (
             <button key={i} onClick={() => setCatTab(i)} className="flex-1 py-3 text-base font-black transition-all"
