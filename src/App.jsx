@@ -1,23 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 
-// ─── EmailJS ───────────────────────────────────────────────────────
 const EJS_PUBLIC_KEY  = "Q8fPVr7d3xnfuxPdT";
 const EJS_SERVICE_ID  = "Gmail";
 const EJS_TEMPLATE_ID = "template_heeg1ec";
 
-// ─── Storage keys ──────────────────────────────────────────────────
 const SK = {
-  U15_ALL:    "mg_u15_all",
-  O15_ALL:    "mg_o15_all",
-  U15_SEZ:    "mg_u15_sez",
-  O15_SEZ:    "mg_o15_sez",
-  PIN:        "mg_pin",
-  SEASON:     "mg_season",   // { label, endDate (ISO), active }
+  U15_ALL: "mg_u15_all", O15_ALL: "mg_o15_all",
+  U15_SEZ: "mg_u15_sez", O15_SEZ: "mg_o15_sez",
+  PIN: "mg_pin", SEASON: "mg_season",
 };
 
 const DEFAULT_PIN = "357753";
 
-// ─── Helpers ───────────────────────────────────────────────────────
 const MEDALS = ["🥇", "🥈", "🥉"];
 const MEDAL_COLORS = [
   { bg: "from-yellow-400 to-amber-500", border: "border-yellow-400", text: "text-yellow-900" },
@@ -27,14 +21,12 @@ const MEDAL_COLORS = [
 
 const fmt = (iso) => { const d = new Date(iso); return `${d.getDate()}.${d.getMonth()+1}.${d.getFullYear()}`; };
 const sortP = (arr) => [...arr].sort((a,b) => a.score - b.score);
-
 const daysUntil = (isoDate) => {
   if (!isoDate) return null;
   const diff = new Date(isoDate).setHours(0,0,0,0) - new Date().setHours(0,0,0,0);
   return Math.ceil(diff / 86400000);
 };
 
-// ─── Storage ───────────────────────────────────────────────────────
 const sGet = async (key) => {
   try { const r = await window.storage.get(key); if (r) return JSON.parse(r.value); } catch {}
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; }
@@ -45,16 +37,12 @@ const sSet = async (key, val) => {
   try { localStorage.setItem(key, s); } catch {}
 };
 
-// ─── EmailJS ───────────────────────────────────────────────────────
 const sendEmail = async (toEmail, nick, message) => {
   try {
     const r = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        service_id: EJS_SERVICE_ID, template_id: EJS_TEMPLATE_ID, user_id: EJS_PUBLIC_KEY,
-        template_params: { to_email: toEmail, nick, message },
-      }),
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ service_id: EJS_SERVICE_ID, template_id: EJS_TEMPLATE_ID, user_id: EJS_PUBLIC_KEY,
+        template_params: { to_email: toEmail, nick, message } }),
     });
     return r.ok;
   } catch { return false; }
@@ -91,22 +79,24 @@ const sendSeasonEnd = async (season, u15, o15) => {
   }
 };
 
-// ══════════════════════════════════════════════════════════════════
-// Modals
-// ══════════════════════════════════════════════════════════════════
+// ── Styles ──────────────────────────────────────────────────────────
+const inputCls = "w-full rounded-2xl border-2 border-gray-100 px-4 py-3 bg-gray-50 text-base font-semibold focus:outline-none focus:border-green-400 transition-colors";
+const cardShadow = { boxShadow: "0 2px 16px 0 rgba(0,0,0,0.07)" };
+
+// ── Overlay ─────────────────────────────────────────────────────────
 function Overlay({ children }) {
   return <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.78)" }}>{children}</div>;
 }
 
-function ConfirmDialog({ icon = "⛳", message, yesLabel, noLabel = "Zrušit", danger, onYes, onNo }) {
+function ConfirmDialog({ icon="⛳", message, yesLabel, noLabel="Zrušit", danger, onYes, onNo }) {
   return (
     <Overlay>
-      <div className={`bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center border-4 ${danger ? "border-red-500" : "border-green-500"}`}>
+      <div className={`bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center border-4 ${danger ? "border-red-500" : "border-green-500"}`}>
         <div className="text-4xl mb-4">{icon}</div>
-        <p className="text-gray-800 font-semibold text-lg mb-6">{message}</p>
+        <p className="text-gray-800 font-semibold text-base mb-6">{message}</p>
         <div className="flex gap-3 justify-center">
-          <button onClick={onNo} className="px-6 py-2 rounded-xl font-bold text-gray-600 bg-gray-100">{noLabel}</button>
-          <button onClick={onYes} className={`px-6 py-2 rounded-xl font-bold text-white ${danger ? "bg-red-500" : "bg-green-700"}`}>{yesLabel}</button>
+          <button onClick={onNo} className="px-6 py-3 rounded-xl font-bold text-gray-600 bg-gray-100">{noLabel}</button>
+          <button onClick={onYes} className={`px-6 py-3 rounded-xl font-bold text-white ${danger ? "bg-red-500" : "bg-green-700"}`}>{yesLabel}</button>
         </div>
       </div>
     </Overlay>
@@ -118,17 +108,17 @@ function PinModal({ onSuccess, onCancel, currentPin }) {
   const check = () => { if (v === currentPin) onSuccess(); else { setErr(true); setV(""); setTimeout(() => setErr(false), 1400); } };
   return (
     <Overlay>
-      <div className={`bg-white rounded-2xl shadow-2xl p-8 max-w-xs w-full mx-4 text-center border-4 ${err ? "border-red-500" : "border-green-500"}`}>
-        <div className="text-4xl mb-2">🔐</div>
+      <div className={`bg-white rounded-3xl shadow-2xl p-8 max-w-xs w-full mx-4 text-center border-4 ${err ? "border-red-500" : "border-green-500"}`}>
+        <div className="text-4xl mb-3">🔐</div>
         <h2 className="font-black text-xl mb-1">Admin přístup</h2>
         <p className="text-gray-400 text-sm mb-5">Zadej PIN</p>
         <input type="password" inputMode="numeric" maxLength={10} autoFocus
-          className={`w-full text-center text-2xl font-black tracking-widest border-2 rounded-xl py-3 mb-4 focus:outline-none ${err ? "border-red-400 bg-red-50" : "border-gray-200 focus:border-green-500"}`}
+          className={`w-full text-center text-xl font-black tracking-widest border-2 rounded-2xl py-3 mb-4 focus:outline-none ${err ? "border-red-400 bg-red-50" : "border-gray-200 focus:border-green-500"}`}
           value={v} onChange={e => setV(e.target.value)} onKeyDown={e => e.key === "Enter" && check()} />
         {err && <p className="text-red-500 text-sm mb-3 font-semibold">Špatný PIN</p>}
         <div className="flex gap-2">
-          <button onClick={onCancel} className="flex-1 py-2 rounded-xl font-bold text-gray-600 bg-gray-100">Zrušit</button>
-          <button onClick={check} className="flex-1 py-2 rounded-xl font-bold text-white bg-green-700">Vstoupit</button>
+          <button onClick={onCancel} className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100">Zrušit</button>
+          <button onClick={check} className="flex-1 py-3 rounded-xl font-bold text-white bg-green-700">Vstoupit</button>
         </div>
       </div>
     </Overlay>
@@ -145,19 +135,19 @@ function ChangePinModal({ currentPin, onSave, onCancel }) {
   };
   return (
     <Overlay>
-      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-xs w-full mx-4 border-4 border-blue-500">
-        <h2 className="font-black text-xl mb-5 text-center">Změnit PIN</h2>
+      <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-xs w-full mx-4 border-4 border-blue-500">
+        <h2 className="font-black text-xl mb-6 text-center">Změnit PIN</h2>
         {[["Starý PIN","old"],["Nový PIN","n1"],["Nový PIN znovu","n2"]].map(([l,k]) => (
-          <div key={k} className="mb-3">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{l}</label>
-            <input type="password" inputMode="numeric" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 mt-1 font-mono text-lg focus:outline-none focus:border-blue-400"
+          <div key={k} className="mb-4">
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{l}</label>
+            <input type="password" inputMode="numeric" className={inputCls + " mt-1"}
               value={f[k]} onChange={e => setF(p => ({...p, [k]: e.target.value}))} />
           </div>
         ))}
         {err && <p className="text-red-500 text-sm mb-2 font-semibold">{err}</p>}
         <div className="flex gap-2 mt-4">
-          <button onClick={onCancel} className="flex-1 py-2 rounded-xl font-bold text-gray-600 bg-gray-100">Zrušit</button>
-          <button onClick={go} className="flex-1 py-2 rounded-xl font-bold text-white bg-blue-600">Uložit</button>
+          <button onClick={onCancel} className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100">Zrušit</button>
+          <button onClick={go} className="flex-1 py-3 rounded-xl font-bold text-white bg-blue-600">Uložit</button>
         </div>
       </div>
     </Overlay>
@@ -165,30 +155,24 @@ function ChangePinModal({ currentPin, onSave, onCancel }) {
 }
 
 function NewSeasonModal({ onSave, onCancel }) {
-  const [label, setLabel] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const go = () => {
-    if (!label.trim() || !endDate) return;
-    onSave({ label: label.trim(), endDate, active: true });
-  };
+  const [label, setLabel] = useState(""); const [endDate, setEndDate] = useState("");
+  const go = () => { if (!label.trim() || !endDate) return; onSave({ label: label.trim(), endDate, active: true }); };
   return (
     <Overlay>
-      <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-xs w-full mx-4 border-4 border-green-500">
-        <h2 className="font-black text-xl mb-5 text-center">🏁 Zahájit novou sezónu</h2>
+      <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-xs w-full mx-4 border-4 border-green-500">
+        <h2 className="font-black text-xl mb-6 text-center">🏁 Zahájit novou sezónu</h2>
         <div className="mb-4">
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Název sezóny</label>
-          <input className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 mt-1 font-semibold focus:outline-none focus:border-green-500"
-            placeholder="např. Červenec–Srpen" value={label} onChange={e => setLabel(e.target.value)} />
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Název sezóny</label>
+          <input className={inputCls + " mt-1"} placeholder="např. Červenec–Srpen" value={label} onChange={e => setLabel(e.target.value)} />
         </div>
         <div className="mb-5">
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Konec sezóny</label>
-          <input type="date" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 mt-1 font-semibold focus:outline-none focus:border-green-500"
-            value={endDate} onChange={e => setEndDate(e.target.value)} />
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Konec sezóny</label>
+          <input type="date" className={inputCls + " mt-1"} value={endDate} onChange={e => setEndDate(e.target.value)} />
         </div>
-        <p className="text-xs text-gray-400 mb-4">Sezónní žebříček se resetuje — all time zůstane.</p>
+        <p className="text-xs text-gray-400 mb-5">Sezónní žebříček se resetuje — historický zůstane.</p>
         <div className="flex gap-2">
-          <button onClick={onCancel} className="flex-1 py-2 rounded-xl font-bold text-gray-600 bg-gray-100">Zrušit</button>
-          <button onClick={go} className="flex-1 py-2 rounded-xl font-bold text-white bg-green-700">Zahájit</button>
+          <button onClick={onCancel} className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100">Zrušit</button>
+          <button onClick={go} className="flex-1 py-3 rounded-xl font-bold text-white bg-green-700">Zahájit</button>
         </div>
       </div>
     </Overlay>
@@ -200,61 +184,55 @@ function EditPlayerModal({ player, onSave, onCancel }) {
   const go = () => { const s = parseInt(f.score); if (!f.nick.trim() || isNaN(s)) return; onSave({ ...player, nick: f.nick.trim(), score: s, round: f.round||"—", note: f.note.trim(), email: f.email.trim() }); };
   return (
     <Overlay>
-      <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-xs w-full mx-4 border-4 border-orange-400">
-        <h2 className="font-black text-xl mb-5 text-center">✏️ Upravit hráče</h2>
+      <div className="bg-white rounded-3xl shadow-2xl p-5 max-w-xs w-full mx-4 border-4 border-orange-400">
+        <h2 className="font-black text-xl mb-6 text-center">✏️ Upravit hráče</h2>
         {[["Přezdívka","nick","text",{}],["Skóre","score","number",{min:0,inputMode:"numeric"}],["Kolo č.","round","number",{min:1,inputMode:"numeric"}],["Poznámka","note","text",{}],["Email","email","email",{}]].map(([l,k,t,ex]) => (
-          <div key={k} className="mb-3">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{l}</label>
-            <input type={t} {...ex} className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 mt-1 font-semibold focus:outline-none focus:border-orange-400"
-              value={f[k]} onChange={e => setF(p => ({...p,[k]:e.target.value}))} />
+          <div key={k} className="mb-4">
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{l}</label>
+            <input type={t} {...ex} className={inputCls + " mt-1 focus:border-orange-400"} value={f[k]} onChange={e => setF(p => ({...p,[k]:e.target.value}))} />
           </div>
         ))}
         <div className="flex gap-2 mt-4">
-          <button onClick={onCancel} className="flex-1 py-2 rounded-xl font-bold text-gray-600 bg-gray-100">Zrušit</button>
-          <button onClick={go} className="flex-1 py-2 rounded-xl font-bold text-white bg-orange-500">Uložit</button>
+          <button onClick={onCancel} className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100">Zrušit</button>
+          <button onClick={go} className="flex-1 py-3 rounded-xl font-bold text-white bg-orange-500">Uložit</button>
         </div>
       </div>
     </Overlay>
   );
 }
 
-// ══════════════════════════════════════════════════════════════════
-// PlayerCard
-// ══════════════════════════════════════════════════════════════════
 function PlayerCard({ player, rank, isAdmin, onDelete, onEdit }) {
   const isMedal = rank < 3;
   const mc = MEDAL_COLORS[rank] || {};
   return (
-    <div className={`flex items-center gap-3 rounded-2xl px-4 py-3 border-2 mb-2 transition-all ${isMedal ? `bg-gradient-to-r ${mc.bg} ${mc.border} shadow-lg` : "bg-white border-gray-100 shadow-sm"}`}>
-      <div className={`text-2xl font-black w-9 text-center shrink-0 ${isMedal ? mc.text : "text-gray-400"}`}>{isMedal ? MEDALS[rank] : rank+1}</div>
+    <div style={!isMedal ? cardShadow : {}}
+      className={`flex items-center gap-4 rounded-2xl px-5 py-3 border-2 mb-3 transition-all ${isMedal ? `bg-gradient-to-r ${mc.bg} ${mc.border} shadow-lg` : "bg-white border-gray-100"}`}>
+      <div className={`text-2xl font-black w-9 text-center shrink-0 ${isMedal ? mc.text : "text-gray-300"}`}>{isMedal ? MEDALS[rank] : rank+1}</div>
       <div className="flex-1 min-w-0">
         <div className={`font-bold text-base truncate ${isMedal ? mc.text : "text-gray-800"}`}>
-          {player.nick}{player.email && <span className="ml-1 text-xs opacity-50">🔔</span>}
+          {player.nick}{player.email && <span className="ml-1 text-xs opacity-40">🔔</span>}
         </div>
-        <div className={`text-xs truncate ${isMedal ? mc.text+" opacity-70" : "text-gray-400"}`}>
+        <div className={`text-xs truncate mt-0.5 ${isMedal ? mc.text+" opacity-70" : "text-gray-400"}`}>
           {player.note ? `📝 ${player.note} · ` : ""}kolo {player.round} · {fmt(player.date)}
         </div>
       </div>
-      <div className={`text-2xl font-black shrink-0 ${isMedal ? mc.text : "text-green-700"}`}>{player.score}</div>
+      <div className={`text-2xl font-black shrink-0 ${isMedal ? mc.text : "text-green-600"}`}>{player.score}</div>
       {isAdmin && (
         <div className="flex gap-1 ml-1 shrink-0">
-          <button onClick={e => { e.stopPropagation(); onEdit(player); }} className="w-7 h-7 rounded-lg bg-white bg-opacity-60 flex items-center justify-center hover:bg-opacity-100 transition-all">✏️</button>
-          <button onClick={e => { e.stopPropagation(); onDelete(player.nick); }} className="w-7 h-7 rounded-lg bg-white bg-opacity-60 flex items-center justify-center hover:bg-opacity-100 transition-all">🗑️</button>
+          <button onClick={e => { e.stopPropagation(); onEdit(player); }} className="w-8 h-8 rounded-xl bg-white bg-opacity-60 flex items-center justify-center hover:bg-opacity-100 transition-all text-base">✏️</button>
+          <button onClick={e => { e.stopPropagation(); onDelete(player.nick); }} className="w-8 h-8 rounded-xl bg-white bg-opacity-60 flex items-center justify-center hover:bg-opacity-100 transition-all text-base">🗑️</button>
         </div>
       )}
     </div>
   );
 }
 
-// ══════════════════════════════════════════════════════════════════
-// Leaderboard panel (one category)
-// ══════════════════════════════════════════════════════════════════
 function LeaderboardPanel({ allKey, sezKey, label, color, isAdmin, season }) {
   const [allPlayers, setAllPlayers] = useState([]);
   const [sezPlayers, setSezPlayers] = useState([]);
-  const [view, setView]   = useState("sezona"); // "sezona" | "vsechny"
-  const [form, setForm]   = useState({ nick:"", score:"", round:"", note:"", email:"", wantsEmail:false });
-  const [dialog, setDialog]   = useState(null);
+  const [view, setView] = useState("sezona");
+  const [form, setForm] = useState({ nick:"", score:"", round:"", note:"", email:"", wantsEmail:false });
+  const [dialog, setDialog] = useState(null);
   const [delTarget, setDelTarget] = useState(null);
   const [editTarget, setEditTarget] = useState(null);
   const [flash, setFlash] = useState({ msg:"", ok:true });
@@ -268,9 +246,8 @@ function LeaderboardPanel({ allKey, sezKey, label, color, isAdmin, season }) {
     })();
   }, [allKey, sezKey]);
 
-  const saveAll = async (updated) => { setAllPlayers(updated); await sSet(allKey, updated); };
-  const saveSez = async (updated) => { setSezPlayers(updated); await sSet(sezKey, updated); };
-
+  const saveAll = async (u) => { setAllPlayers(u); await sSet(allKey, u); };
+  const saveSez = async (u) => { setSezPlayers(u); await sSet(sezKey, u); };
   const flash$ = (msg, ok=true) => { setFlash({msg,ok}); setTimeout(()=>setFlash({msg:"",ok:true}),3500); };
 
   const doAdd = async (nick) => {
@@ -280,26 +257,22 @@ function LeaderboardPanel({ allKey, sezKey, label, color, isAdmin, season }) {
     const email = form.wantsEmail ? form.email.trim() : "";
     const date  = new Date().toISOString();
 
-    // ── All-time ──
     const oldAllSorted = sortP(allPlayers);
     const aIdx = allPlayers.findIndex(p => p.nick.toLowerCase() === nick.toLowerCase());
     let newAll;
     if (aIdx !== -1) {
-      if (score < allPlayers[aIdx].score) {
-        newAll = [...allPlayers]; newAll[aIdx] = {...newAll[aIdx], score, round, note, date, ...(email?{email}:{})};
-      } else { newAll = allPlayers; }
+      if (score < allPlayers[aIdx].score) { newAll = [...allPlayers]; newAll[aIdx] = {...newAll[aIdx], score, round, note, date, ...(email?{email}:{})}; }
+      else { newAll = allPlayers; }
     } else { newAll = [...allPlayers, {nick, score, round, note, date, email}]; }
     await saveAll(newAll);
     await notifyRankChange(oldAllSorted, sortP(newAll));
 
-    // ── Sezónní ──
     if (season?.active) {
       const sIdx = sezPlayers.findIndex(p => p.nick.toLowerCase() === nick.toLowerCase());
       let newSez;
       if (sIdx !== -1) {
-        if (score < sezPlayers[sIdx].score) {
-          newSez = [...sezPlayers]; newSez[sIdx] = {...newSez[sIdx], score, round, note, date, ...(email?{email}:{})};
-        } else { newSez = sezPlayers; }
+        if (score < sezPlayers[sIdx].score) { newSez = [...sezPlayers]; newSez[sIdx] = {...newSez[sIdx], score, round, note, date, ...(email?{email}:{})}; }
+        else { newSez = sezPlayers; }
       } else { newSez = [...sezPlayers, {nick, score, round, note, date, email}]; }
       await saveSez(newSez);
     }
@@ -338,55 +311,59 @@ function LeaderboardPanel({ allKey, sezKey, label, color, isAdmin, season }) {
   const displayList = sortP(view === "sezona" ? sezPlayers : allPlayers);
 
   return (
-    <div className="w-full mb-8">
+    <div className="w-full">
       {dialog && <ConfirmDialog {...dialog} yesLabel="Ano, jsem to já" noLabel="Ne, jiný hráč" onNo={dialog.onNo} />}
       {delTarget && <ConfirmDialog icon="🗑️" message={`Smazat hráče „${delTarget}"?`} yesLabel="Smazat" danger onYes={confirmDelete} onNo={() => setDelTarget(null)} />}
       {editTarget && <EditPlayerModal player={editTarget} onSave={handleEditSave} onCancel={() => setEditTarget(null)} />}
 
       {/* Category header */}
-      <div className="rounded-2xl px-5 py-3 mb-4 text-center font-black text-xl text-white shadow-md" style={{ background: color }}>
+      <div className="rounded-2xl px-5 py-3 mb-5 text-center font-black text-2xl text-white" style={{ background: color, boxShadow: "0 4px 20px 0 rgba(0,0,0,0.15)" }}>
         {label}
-        {isAdmin && <span className="ml-2 text-xs bg-white bg-opacity-20 rounded-full px-2 py-0.5">ADMIN</span>}
+        {isAdmin && <span className="ml-2 text-xs bg-white bg-opacity-20 rounded-full px-2 py-0.5 font-bold">ADMIN</span>}
       </div>
 
       {flash.msg && (
-        <div className={`mb-3 rounded-xl px-4 py-3 text-sm font-semibold border ${flash.ok ? "bg-green-50 border-green-200 text-green-800" : "bg-orange-50 border-orange-200 text-orange-800"}`}>
+        <div className={`mb-5 rounded-2xl px-4 py-2.5 text-sm font-semibold ${flash.ok ? "bg-green-50 border border-green-200 text-green-800" : "bg-orange-50 border border-orange-200 text-orange-800"}`}>
           {flash.msg}
         </div>
       )}
 
       {/* Entry form */}
-      <div className="bg-gray-50 rounded-2xl p-4 mb-4 border border-gray-200">
-        <div className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider">Přidat / aktualizovat výkon</div>
-        <div className="grid grid-cols-2 gap-2 mb-2">
-          <input className="col-span-2 rounded-xl border-2 border-gray-200 px-3 py-2 text-sm font-semibold focus:outline-none focus:border-green-500 bg-white" placeholder="Přezdívka *" value={form.nick} onChange={e=>setForm(f=>({...f,nick:e.target.value}))} />
-          <input className="rounded-xl border-2 border-gray-200 px-3 py-2 text-sm font-semibold focus:outline-none focus:border-green-500 bg-white" placeholder="Skóre (ran) *" type="number" min="0" inputMode="numeric" value={form.score} onChange={e=>setForm(f=>({...f,score:e.target.value}))} />
-          <input className="rounded-xl border-2 border-gray-200 px-3 py-2 text-sm font-semibold focus:outline-none focus:border-green-500 bg-white" placeholder="Kolo č." type="number" min="1" inputMode="numeric" value={form.round} onChange={e=>setForm(f=>({...f,round:e.target.value}))} />
-          <input className="col-span-2 rounded-xl border-2 border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-green-500 bg-white" placeholder="Poznámka (volitelná)" value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))} />
+      <div className="bg-white rounded-3xl p-4 mb-5" style={cardShadow}>
+        <div className="text-xs font-bold text-gray-400 mb-4 uppercase tracking-widest">Přidat / aktualizovat výkon</div>
+        <div className="flex flex-col gap-3 mb-3">
+          <input className={inputCls} placeholder="Přezdívka *" value={form.nick} onChange={e=>setForm(f=>({...f,nick:e.target.value}))} />
+          <div className="grid grid-cols-2 gap-3">
+            <input className={inputCls} placeholder="Skóre (ran) *" type="number" min="0" inputMode="numeric" value={form.score} onChange={e=>setForm(f=>({...f,score:e.target.value}))} />
+            <input className={inputCls} placeholder="Kolo č." type="number" min="1" inputMode="numeric" value={form.round} onChange={e=>setForm(f=>({...f,round:e.target.value}))} />
+          </div>
+          <input className={inputCls} placeholder="Poznámka (volitelná)" value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))} />
         </div>
-        <label className="flex items-center gap-2 cursor-pointer mb-2">
+        <label className="flex items-center gap-2 cursor-pointer mb-4 mt-1">
           <input type="checkbox" className="w-4 h-4 accent-green-600" checked={form.wantsEmail} onChange={e=>setForm(f=>({...f,wantsEmail:e.target.checked}))} />
-          <span className="text-xs text-gray-600">Chci upozornění na email <span className="text-gray-400">(překonání, konec sezóny)</span></span>
+          <span className="text-sm text-gray-500">Chci upozornění na email <span className="text-gray-400 text-xs">(překonání, konec sezóny)</span></span>
         </label>
         {form.wantsEmail && (
-          <input className="w-full rounded-xl border-2 border-green-300 px-3 py-2 text-sm mb-2 focus:outline-none focus:border-green-500 bg-white" placeholder="tvůj@email.cz" type="email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} />
+          <input className={inputCls + " mb-4"} placeholder="tvůj@email.cz" type="email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} />
         )}
-        <button onClick={handleSubmit} className="w-full py-2 rounded-xl font-black text-white text-sm hover:opacity-90 transition-opacity" style={{ background: color }}>⛳ POTVRDIT</button>
+        <button onClick={handleSubmit} className="w-full py-2.5 rounded-2xl font-black text-white text-base hover:opacity-90 transition-opacity" style={{ background: color }}>
+          ⛳ POTVRDIT
+        </button>
       </div>
 
       {/* View switcher */}
-      <div className="flex rounded-xl overflow-hidden border border-gray-200 mb-3 bg-white">
+      <div className="flex rounded-2xl overflow-hidden mb-5 bg-white" style={cardShadow}>
         {[["sezona","Sezónní"],["vsechny","Historický"]].map(([val, lbl]) => (
-          <button key={val} onClick={() => setView(val)} className="flex-1 py-2 text-xs font-black transition-all"
+          <button key={val} onClick={() => setView(val)} className="flex-1 py-3 text-sm font-black transition-all"
             style={view===val ? {background:color, color:"#fff"} : {color:"#9ca3af"}}>
             {lbl}
           </button>
         ))}
       </div>
 
-      {/* Days remaining — only in sezónní view */}
+      {/* Days remaining */}
       {view === "sezona" && season?.active && days !== null && (
-        <div className="mb-3 rounded-xl px-4 py-2 text-center text-xs font-bold border"
+        <div className="mb-5 rounded-2xl px-4 py-3 text-center text-sm font-bold border"
           style={{ background: days <= 7 ? "#fef2f2" : "#f0fdf4", borderColor: days <= 7 ? "#fca5a5" : "#86efac", color: days <= 7 ? "#dc2626" : "#15803d" }}>
           {days > 0 ? `⏳ Do konce sezóny ${season.label} zbývá ${days} ${days === 1 ? "den" : days < 5 ? "dny" : "dní"}` : "🏁 Sezóna dnes končí!"}
         </div>
@@ -394,29 +371,21 @@ function LeaderboardPanel({ allKey, sezKey, label, color, isAdmin, season }) {
 
       {/* Leaderboard list */}
       {!loaded ? (
-        <div className="text-center text-gray-400 py-8">Načítám...</div>
+        <div className="text-center text-gray-400 py-10">Načítám...</div>
       ) : displayList.length === 0 ? (
-        <div className="text-center text-gray-400 py-6 text-sm">
+        <div className="text-center text-gray-400 py-10 text-sm">
           {view === "sezona" ? "V této sezóně zatím nikdo nehrál." : "Zatím žádní hráči."}
         </div>
       ) : (
         displayList.map((p,i) => (
           <PlayerCard key={p.nick+i} player={p} rank={i} isAdmin={isAdmin}
-            onDelete={nick => setDelTarget(nick)}
-            onEdit={() => setEditTarget(p)} />
+            onDelete={nick => setDelTarget(nick)} onEdit={() => setEditTarget(p)} />
         ))
       )}
     </div>
   );
 }
 
-// ══════════════════════════════════════════════════════════════════
-// App
-// ══════════════════════════════════════════════════════════════════
-
-// ══════════════════════════════════════════════════════════════════
-// App
-// ══════════════════════════════════════════════════════════════════
 export default function App() {
   const [isAdmin, setIsAdmin]             = useState(false);
   const [showPin, setShowPin]             = useState(false);
@@ -447,12 +416,9 @@ export default function App() {
   const handleSavePin = async (np) => { setPin(np); await sSet(SK.PIN, np); setShowChangePin(false); };
 
   const handleNewSeason = async (s) => {
-    await sSet(SK.SEASON, s);
-    await sSet(SK.U15_SEZ, []);
-    await sSet(SK.O15_SEZ, []);
-    setSeason(s);
-    setShowNewSeason(false);
-    setAdminFlash(`✅ Sezóna „${s.label}" zahájena! Sezónní žebříčky resetovány.`);
+    await sSet(SK.SEASON, s); await sSet(SK.U15_SEZ, []); await sSet(SK.O15_SEZ, []);
+    setSeason(s); setShowNewSeason(false);
+    setAdminFlash(`✅ Sezóna „${s.label}" zahájena!`);
     setTimeout(() => setAdminFlash(""), 5000);
   };
 
@@ -464,15 +430,13 @@ export default function App() {
       const count = [...u, ...o].filter(p => p.email).length;
       await sendSeasonEnd(season, u, o);
       const ended = { ...season, active: false };
-      await sSet(SK.SEASON, ended);
-      setSeason(ended);
-      setAdminFlash(`📧 Sezóna ukončena! Odesláno ${count} email${count === 1 ? "" : "ů"}. Zahaj novou sezónu tlačítkem výše.`);
+      await sSet(SK.SEASON, ended); setSeason(ended);
+      setAdminFlash(`📧 Hotovo! Odesláno ${count} email${count === 1 ? "" : "ů"}.`);
       setTimeout(() => setAdminFlash(""), 7000);
     }
   };
 
   const days = season?.endDate ? daysUntil(season.endDate) : null;
-
   const TABS = [
     { allKey: SK.U15_ALL, sezKey: SK.U15_SEZ, label: "Do 15 let", color: "#15803d" },
     { allKey: SK.O15_ALL, sezKey: SK.O15_SEZ, label: "Od 15 let", color: "#1d4ed8" },
@@ -480,61 +444,59 @@ export default function App() {
   const t = TABS[catTab];
 
   return (
-    <div className="min-h-screen" style={{ background: "linear-gradient(135deg,#f0fdf4 0%,#dbeafe 100%)" }}>
+    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg,#f0fdf4 0%,#dbeafe 100%)", display: "flex", justifyContent: "center", fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
       {showPin && <PinModal currentPin={pin} onSuccess={() => { setShowPin(false); setIsAdmin(true); }} onCancel={() => setShowPin(false)} />}
       {showChangePin && <ChangePinModal currentPin={pin} onSave={handleSavePin} onCancel={() => setShowChangePin(false)} />}
       {showNewSeason && <NewSeasonModal onSave={handleNewSeason} onCancel={() => setShowNewSeason(false)} />}
       {showEndSeason && (
-        <ConfirmDialog icon="🏁" message={`Ukončit sezónu „${season?.label}"? Odešlou se výsledkové emaily a sezónní žebříček se uzamkne.`}
+        <ConfirmDialog icon="🏁" message={`Ukončit sezónu „${season?.label}"? Odešlou se výsledkové emaily.`}
           yesLabel="Ukončit sezónu" danger onYes={handleEndSeason} onNo={() => setShowEndSeason(false)} />
       )}
 
-      <div className="max-w-lg mx-auto px-4 pb-16 pt-6">
-        {/* Logo — 5x tap = admin */}
-        <div className="text-center mb-4 select-none" onClick={handleLogoClick} style={{ cursor: "default" }}>
-          <div className="text-5xl mb-2">⛳</div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Minigolf</h1>
-          <p className="text-gray-500 font-medium">Bílovice · Žebříček</p>
+<div style={{ width: "100%", maxWidth: "500px", padding: "40px 20px 60px 20px" }}>
 
+        {/* Logo */}
+        <div className="text-center mb-7 select-none" onClick={handleLogoClick} style={{ cursor: "default" }}>
+          <div style={{ fontSize: "72px", lineHeight: 1, marginBottom: "12px" }}>⛳</div>
+          <h1 style={{ fontSize: "48px", fontWeight: 900, color: "#111827", letterSpacing: "-1px", lineHeight: 1.1 }}>Minigolf</h1>
+          <p style={{ color: "#6b7280", fontWeight: 500, marginTop: "6px", fontSize: "14px" }}>Bílovice · Žebříček</p>
         </div>
 
         {/* Season badge */}
         {season?.active && (
-          <div className="mb-3 rounded-xl px-4 py-2 text-center text-xs font-bold bg-green-100 text-green-800 border border-green-200">
+          <div className="mb-6 rounded-2xl px-4 py-3 text-center text-sm font-bold bg-green-100 text-green-800 border border-green-200">
             🏆 Aktivní sezóna: {season.label}
             {days !== null && days >= 0 && <span className="ml-2 opacity-70">· {days > 0 ? `${days} dní do konce` : "dnes končí!"}</span>}
           </div>
         )}
 
-
         {/* Admin panel */}
         {isAdmin && (
-          <div className="mb-4 rounded-2xl p-4 bg-orange-50 border-2 border-orange-300">
-            <div className="flex items-center justify-between mb-3">
+          <div className="mb-6 rounded-2xl p-5 bg-orange-50 border-2 border-orange-200">
+            <div className="flex items-center justify-between mb-4">
               <span className="font-black text-orange-700 text-sm">🔑 Admin režim</span>
-              <button onClick={() => setIsAdmin(false)} className="text-xs font-bold px-3 py-1 rounded-lg bg-red-100 text-red-700 hover:bg-red-200">Odhlásit</button>
+              <button onClick={() => setIsAdmin(false)} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200">Odhlásit</button>
             </div>
-            {adminFlash && <div className="mb-3 rounded-xl px-3 py-2 text-xs font-semibold bg-green-100 text-green-800 border border-green-200">{adminFlash}</div>}
+            {adminFlash && <div className="mb-3 rounded-xl px-3 py-2 text-sm font-semibold bg-green-100 text-green-800 border border-green-200">{adminFlash}</div>}
             {season && !season.active && <div className="mb-3 rounded-xl px-3 py-2 text-xs font-semibold bg-gray-100 text-gray-500 border border-gray-200">Žádná aktivní sezóna · zahaj novou tlačítkem níže</div>}
             <div className="flex flex-wrap gap-2">
               <button onClick={() => setShowNewSeason(true)} className="text-xs font-bold px-3 py-2 rounded-xl bg-green-700 text-white hover:bg-green-800 transition-colors">🏁 Zahájit novou sezónu</button>
-              {season?.active && <button onClick={() => setShowEndSeason(true)} className="text-xs font-bold px-3 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors">🔚 Ukončit sezónu + odeslat emaily</button>}
+              {season?.active && <button onClick={() => setShowEndSeason(true)} className="text-xs font-bold px-3 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors">🔚 Ukončit sezónu + emaily</button>}
               <button onClick={() => setShowChangePin(true)} className="text-xs font-bold px-3 py-2 rounded-xl bg-orange-200 text-orange-900 hover:bg-orange-300 transition-colors">🔑 Změnit PIN</button>
             </div>
           </div>
         )}
 
         {/* Category tabs */}
-        <div className="flex rounded-2xl overflow-hidden border-2 border-gray-200 mb-6 bg-white shadow-sm">
+        <div className="flex rounded-2xl overflow-hidden mb-6 bg-white" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.08)" }}>
           {TABS.map((tab, i) => (
-            <button key={i} onClick={() => setCatTab(i)} className="flex-1 py-3 text-sm font-black transition-all"
-              style={catTab === i ? { background: tab.color, color: "#fff" } : { color: "#6b7280", background: "white" }}>
+            <button key={i} onClick={() => setCatTab(i)} className="flex-1 py-3 text-base font-black transition-all"
+              style={catTab === i ? { background: tab.color, color: "#fff" } : { color: "#9ca3af", background: "white" }}>
               {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Active leaderboard panel */}
         <LeaderboardPanel key={t.allKey} allKey={t.allKey} sezKey={t.sezKey} label={t.label} color={t.color} isAdmin={isAdmin} season={season} />
       </div>
     </div>
