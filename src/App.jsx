@@ -33,48 +33,6 @@ const sSet = async (key, val) => {
   try { localStorage.setItem(key, s); } catch {}
 };
 
-const sendEmail = async (toEmail, nick, message) => {
-  try {
-    const r = await fetch("/api/send-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ to: toEmail, nick, message }),
-    });
-    return r.ok;
-  } catch { return false; }
-};
-
-const notifyRankChange = async (oldSorted, newSorted) => {
-  for (const player of newSorted) {
-    if (!player.email) continue;
-    const oldRank = oldSorted.findIndex(p => p.nick === player.nick);
-    const newRank = newSorted.findIndex(p => p.nick === player.nick);
-    if (oldRank === 0 && newRank > 0) {
-      const leader = newSorted[0];
-      await sendEmail(player.email, player.nick,
-        `Někdo tě překonal na 1. místě! 😤\n\n${leader.nick} tě předběhl se skóre ${leader.score} ran (ty máš ${player.score}).\n\nPřijď to napravit! ⛳`);
-    }
-    if (oldRank < 3 && newRank >= 3) {
-      await sendEmail(player.email, player.nick,
-        `Vypadl jsi z top 3! 😬\n\nAktuálně jsi na ${newRank+1}. místě se skóre ${player.score} ran.\n\nPřijď to napravit! ⛳`);
-    }
-  }
-};
-
-const sendSeasonEnd = async (season, u15, o15) => {
-  const groups = [{ name: "do 15 let", players: sortP(u15) }, { name: "od 15 let", players: sortP(o15) }];
-  for (const g of groups) {
-    for (let i = 0; i < Math.min(3, g.players.length); i++) {
-      const p = g.players[i];
-      if (!p.email) continue;
-      const msg = i === 0
-        ? `Gratulujeme! Sezóna ${season.label} skončila a ty jsi byl nejlepší hráč v kategorii ${g.name}! 🏆\n\nTvé nejlepší skóre: ${p.score} ran.\n\nPřijď si pro svou výhru na minigolf Bílovice!`
-        : `Sezóna ${season.label} skončila! Skončil jsi na ${i+1}. místě v kategorii ${g.name} — skvělá práce! 🎉\n\nTvé nejlepší skóre: ${p.score} ran.\n\nVidíme se příští sezónu!`;
-      await sendEmail(p.email, p.nick, msg);
-    }
-  }
-};
-
 const inputCls = "w-full rounded-2xl border-2 border-gray-100 px-4 py-3 bg-gray-50 text-base font-semibold focus:outline-none focus:border-green-400 transition-colors";
 const cardShadow = { boxShadow: "0 2px 16px 0 rgba(0,0,0,0.07)" };
 
@@ -259,8 +217,7 @@ function LeaderboardPanel({ allKey, sezKey, label, color, isAdmin, season }) {
       else { newAll = allPlayers; }
     } else { newAll = [...allPlayers, {nick, score, round, note, date, email}]; }
     await saveAll(newAll);
-    await notifyRankChange(oldAllSorted, sortP(newAll));
-
+   
     if (season?.active) {
       const sIdx = sezPlayers.findIndex(p => p.nick.toLowerCase() === nick.toLowerCase());
       let newSez;
@@ -333,7 +290,7 @@ function LeaderboardPanel({ allKey, sezKey, label, color, isAdmin, season }) {
         </div>
         <label className="flex items-center gap-2 cursor-pointer mb-4 mt-1">
           <input type="checkbox" className="w-4 h-4 accent-green-600" checked={form.wantsEmail} onChange={e=>setForm(f=>({...f,wantsEmail:e.target.checked}))} />
-          <span className="text-sm text-gray-500">Chci upozornění na email <span className="text-gray-400 text-xs">(překonání, konec sezóny)</span></span>
+          <span className="text-sm text-gray-500">Chci upozornění na email <span className="text-gray-400 text-xs">(pro informování o sezónním výherci)</span></span>
         </label>
         {form.wantsEmail && (
           <input className={inputCls + " mb-4"} placeholder="tvůj@email.cz" type="email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} />
@@ -411,19 +368,16 @@ export default function App() {
     setTimeout(() => setAdminFlash(""), 5000);
   };
 
-  const handleEndSeason = async () => {
-    setShowEndSeason(false);
-    if (season) {
-      const u = await sGet(SK.U15_SEZ) || [];
-      const o = await sGet(SK.O15_SEZ) || [];
-      const count = [...u, ...o].filter(p => p.email).length;
-      await sendSeasonEnd(season, u, o);
-      const ended = { ...season, active: false };
-      await sSet(SK.SEASON, ended); setSeason(ended);
-      setAdminFlash(`📧 Hotovo! Odesláno ${count} email${count === 1 ? "" : "ů"}.`);
-      setTimeout(() => setAdminFlash(""), 7000);
-    }
-  };
+const handleEndSeason = async () => {
+  setShowEndSeason(false);
+  if (season) {
+    const ended = { ...season, active: false };
+    await sSet(SK.SEASON, ended);
+    setSeason(ended);
+    setAdminFlash(`✅ Sezóna ukončena.`);
+    setTimeout(() => setAdminFlash(""), 5000);
+  }
+};
 
   const days = season?.endDate ? daysUntil(season.endDate) : null;
   const TABS = [
@@ -465,7 +419,7 @@ export default function App() {
             {season && !season.active && <div className="mb-3 rounded-xl px-3 py-2 text-xs font-semibold bg-gray-100 text-gray-500 border border-gray-200">Žádná aktivní sezóna · zahaj novou tlačítkem níže</div>}
             <div className="flex flex-wrap gap-2">
               <button onClick={() => setShowNewSeason(true)} className="text-xs font-bold px-3 py-2 rounded-xl bg-green-700 text-white hover:bg-green-800 transition-colors">🏁 Zahájit novou sezónu</button>
-              {season?.active && <button onClick={() => setShowEndSeason(true)} className="text-xs font-bold px-3 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors">🔚 Ukončit sezónu + emaily</button>}
+              {season?.active && <button onClick={() => setShowEndSeason(true)} className="text-xs font-bold px-3 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors">🔚 Ukončit sezónu</button>}
               <button onClick={() => setShowChangePin(true)} className="text-xs font-bold px-3 py-2 rounded-xl bg-orange-200 text-orange-900 hover:bg-orange-300 transition-colors">🔑 Změnit PIN</button>
             </div>
           </div>
