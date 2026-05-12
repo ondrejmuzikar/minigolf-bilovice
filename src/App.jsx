@@ -644,18 +644,12 @@ export default function App() {
               className="w-24 h-24 object-contain"
               draggable={false}
             />
-            <h1
-              style={{
-                fontFamily: "'Fredoka One', cursive",
-                fontWeight: 400,
-                fontSize: "clamp(1.6rem, 6vw, 2.4rem)",
-                color: "#4A4A4A",
-                lineHeight: 1.1,
-                letterSpacing: "0.01em",
-              }}
-            >
-              Minigolf Liška
-            </h1>
+           <img 
+  src="/Minigolf Bílovice/Public/logo-text.png" 
+  alt="Minigolf Bílovice" 
+  className="h-12 w-auto object-contain mb-2" 
+  draggable={false}
+/>
           </div>
           <p className="text-sm font-semibold text-[#4A4A4A] mt-1">Žebříček · Lužánky</p>
         </header>
