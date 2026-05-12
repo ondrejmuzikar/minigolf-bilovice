@@ -645,8 +645,8 @@ export default function App() {
               draggable={false}
             />
            <img 
-  src="/Minigolf Bílovice/Public/logo-text.png" 
-  alt="Minigolf Bílovice" 
+  src="/logo-text.png" 
+  alt="Minigolf Liška" 
   className="h-12 w-auto object-contain mb-2" 
   draggable={false}
 />
