@@ -307,7 +307,7 @@ function PlayerCard({ player, rank, isAdmin, onDelete, onEdit, category }) {
   );
 }
 
-function ScoresBoard({ category, isAdmin, season }) {
+function ScoresBoard({ category, isAdmin, season, themeColor }) {
   const [seasonPlayers, setSeasonPlayers] = useState([]);
   const [historyPlayers, setHistoryPlayers] = useState([]);
   const [view, setView] = useState("sezona");
@@ -444,13 +444,14 @@ function ScoresBoard({ category, isAdmin, season }) {
           {isAdmin && <span className="text-[10px] font-black uppercase tracking-wider bg-[#E8621A] text-white px-2 py-1 rounded-full">Admin</span>}
         </div>
         <button
-          type="button"
-          onClick={() => { setRefreshing(true); load(); }}
-          disabled={refreshing}
-          className="text-xs font-bold px-3 py-2 rounded-xl border-2 border-[#E8621A] text-[#E8621A] hover:bg-[#E8621A] hover:text-white transition-colors disabled:opacity-50"
-        >
-          {refreshing ? "…" : "↻ Obnovit"}
-        </button>
+  type="button"
+  onClick={() => { setRefreshing(true); load(); }}
+  disabled={refreshing}
+  style={{ borderColor: themeColor, color: themeColor }}
+  className="text-xs font-bold px-3 py-2 rounded-xl border-2 transition-colors disabled:opacity-50"
+>
+  {refreshing ? "…" : "↻ Obnovit"}
+</button>
       </div>
 
       {loadError && <div className="mb-5 rounded-2xl px-4 py-2.5 text-sm font-semibold bg-red-50 border border-red-200 text-red-800">{loadError}</div>}
@@ -476,21 +477,26 @@ function ScoresBoard({ category, isAdmin, season }) {
           <span className="text-sm text-[#333] leading-snug">Chci upozornění na email (pro informování o sezónním výherci)</span>
         </label>
         {form.wantsEmail && <input className={inputCls + " mb-4"} placeholder="tvůj@email.cz" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />}
-        <button type="button" onClick={handleSubmit} className="w-full py-3 rounded-2xl font-black text-white text-base bg-[#E8621A] hover:opacity-95 transition-opacity shadow-md">
-          POTVRDIT
-        </button>
+        <button 
+  type="button" 
+  onClick={handleSubmit} 
+  style={{ backgroundColor: themeColor }}
+  className="w-full py-3 rounded-2xl font-black text-white text-base hover:opacity-95 transition-opacity shadow-md"
+>
+  POTVRDIT
+</button>
       </div>
 
       {/* Přepínač Sezónní / Historický */}
       <div className="flex rounded-2xl overflow-hidden mb-4 bg-white border border-gray-200" style={cardShadow}>
         {[["sezona", "Sezónní"], ["vsechny", "Historický"]].map(([val, lbl]) => (
           <button
-            key={val}
-            type="button"
-            onClick={() => setView(val)}
-            className="flex-1 py-3 text-sm font-black transition-colors"
-            style={view === val ? { background: C.primary, color: "#fff" } : { color: "#9ca3af", background: C.card }}
-          >
+          key={val}
+          type="button"
+          onClick={() => setView(val)}
+          className="flex-1 py-3 text-sm font-black transition-colors"
+          style={view === val ? { background: themeColor, color: "#fff" } : { color: "#9ca3af", background: C.card }}
+        >
             {lbl}
           </button>
         ))}
@@ -614,6 +620,8 @@ export default function App() {
 
   const days = season?.endDate ? daysUntil(season.endDate) : null;
   const tab = TABS[catTab];
+  // Pokud je catTab === 1 (Od 15 let), použije se šedá, jinak oranžová
+const themeColor = catTab === 1 ? "#555555" : C.primary;
 
   return (
     <div className="min-h-screen flex justify-center" style={{ background: C.bg }}>
@@ -674,7 +682,7 @@ export default function App() {
               type="button"
               onClick={() => setCatTab(i)}
               className="flex-1 py-3.5 text-sm font-black transition-colors"
-              style={catTab === i ? { background: C.primary, color: "#fff" } : { color: "#9ca3af", background: C.card }}
+              style={catTab === i ? { background: themeColor, color: "#fff" } : { color: "#9ca3af", background: C.card }}
             >
               {t.label}
             </button>
@@ -730,7 +738,7 @@ export default function App() {
           </div>
         )}
 
-        <ScoresBoard key={tab.category} category={tab.category} isAdmin={isAdmin} season={season} />
+n={season} themeC<ScoresBoard key={tab.category} category={tab.category} isAdmin={isAdmin} season={season} themeColor={themeColor} />
       </div>
     </div>
   );
