@@ -78,10 +78,13 @@ function mergeRow(prev, incoming, idPrefer) {
     datum: incoming.datum ?? prev?.datum,
   };
   if (email) row.email = email;
+  if (incoming.emailOdběr === true) row.emailOdběr = true;
+  else if (incoming.emailOdběr === false) row.emailOdběr = false;
+  else if (typeof prev?.emailOdběr !== "undefined") row.emailOdběr = prev.emailOdběr;
   return row;
 }
 
-function applyMerge(list, přezdívka, skóre, kolo, poznámka, datum, id, email) {
+function applyMerge(list, přezdívka, skóre, kolo, poznámka, datum, id, email, emailOdběr) {
   const lower = přezdívka.toLowerCase();
   const idx = list.findIndex((r) => nickFrom(r).toLowerCase() === lower);
   let changed = false;
@@ -91,18 +94,16 @@ function applyMerge(list, přezdívka, skóre, kolo, poznámka, datum, id, email
     const prevScore = scoreFrom(prev);
     if (skóre < prevScore) {
       next = [...list];
-      next[idx] = mergeRow(
-        prev,
-        {
-          přezdívka,
-          skóre,
-          kolo: kolo || prev["kolo"] || "",
-          poznámka: poznámka.trim(),
-          datum,
-          ...(email ? { email } : {}),
-        },
-        prev.id || id
-      );
+      const incomingPatch = {
+        přezdívka,
+        skóre,
+        kolo: kolo || prev["kolo"] || "",
+        poznámka: poznámka.trim(),
+        datum,
+      };
+      if (email) incomingPatch.email = email;
+      if (emailOdběr === true || emailOdběr === false) incomingPatch.emailOdběr = emailOdběr;
+      next[idx] = mergeRow(prev, incomingPatch, prev.id || id);
       changed = true;
     } else {
       next = list;
@@ -116,7 +117,10 @@ function applyMerge(list, přezdívka, skóre, kolo, poznámka, datum, id, email
       poznámka: poznámka.trim(),
       datum,
     };
-    if (email) row.email = email;
+    if (email) {
+      row.email = email;
+      if (emailOdběr === true) row.emailOdběr = true;
+    }
     next = [...list, row];
     changed = true;
   }
@@ -169,17 +173,18 @@ export default async function handler(req, res) {
     const id = String(body.id || Date.now());
     const email =
       typeof body.email === "string" && body.email.includes("@") ? body.email.trim() : "";
+    const emailOdbPass = email ? (body.emailOdběr === true ? true : undefined) : undefined;
 
     try {
       const histKey = historyRedisKey(category);
       const seaKey = seasonRedisKey(category);
       const histList = await readList(redis, histKey);
-      const hRes = applyMerge(histList, přezdívka, skóre, kolo, poznámka, datum, id, email);
+      const hRes = applyMerge(histList, přezdívka, skóre, kolo, poznámka, datum, id, email, emailOdbPass);
       if (hRes.changed) await writeList(redis, histKey, hRes.next);
 
       let sRes = { next: await readList(redis, seaKey), changed: false };
       if (await seasonActive(redis)) {
-        sRes = applyMerge(sRes.next, přezdívka, skóre, kolo, poznámka, datum, id, email);
+        sRes = applyMerge(sRes.next, přezdívka, skóre, kolo, poznámka, datum, id, email, emailOdbPass);
         if (sRes.changed) await writeList(redis, seaKey, sRes.next);
       }
 
@@ -242,6 +247,7 @@ export default async function handler(req, res) {
           : "";
     const datum = typeof body.datum === "string" ? body.datum : new Date().toISOString();
     const emailRaw = typeof body.email === "string" ? body.email.trim() : undefined;
+    const emailOdběrRaw = body.emailOdběr;
 
     try {
       const seaKey = seasonRedisKey(category);
@@ -264,7 +270,11 @@ export default async function handler(req, res) {
           datum,
         };
         if (emailRaw && emailRaw.includes("@")) next.email = emailRaw;
-        else if (emailRaw === "") delete next.email;
+        else if (emailRaw === "") {
+          delete next.email;
+          delete next.emailOdběr;
+        }
+        if (typeof emailOdběrRaw === "boolean") next.emailOdběr = emailOdběrRaw;
         return next;
       };
       sea = sea.map(patch);

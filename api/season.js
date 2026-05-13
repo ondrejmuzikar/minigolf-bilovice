@@ -72,11 +72,14 @@ function mergeHistoryWithSeason(history, seasonRows) {
   return out;
 }
 
-function winnerFromSeasonList(list) {
-  const sorted = [...list]
+function sortedSeasonBoard(list) {
+  return [...list]
     .filter((r) => nickFrom(r))
-    .sort((a, b) => scoreFrom(a) - scoreFrom(b));
-  return sorted[0] || null;
+    .sort((a, b) => {
+      const d = scoreFrom(a) - scoreFrom(b);
+      if (d !== 0) return d;
+      return nickFrom(a).localeCompare(nickFrom(b), "cs");
+    });
 }
 
 export default async function handler(req, res) {
@@ -102,6 +105,44 @@ export default async function handler(req, res) {
     if (body.active === false) {
       try {
         const prev = (await redis.get(SEASON_KEY)) || {};
+        const seasonLabel = String(prev.label || "").trim() || "sezóna";
+
+        if (prev.active === true) {
+          for (const cat of ["do15", "od15"]) {
+            const sKey = seasonRedisKey(cat);
+            const seasonList = await readList(redis, sKey);
+            const sorted = sortedSeasonBoard(seasonList);
+            const catLabel = cat === "do15" ? "Do 15 let" : "Od 15 let";
+            for (let i = 0; i < sorted.length; i++) {
+              const row = sorted[i];
+              const em = row?.email;
+              if (typeof em !== "string" || !em.includes("@")) continue;
+              if (row.emailOdběr === false) continue;
+              const place = i + 1;
+              const nick = nickFrom(row);
+              const sc = scoreFrom(row);
+              let mailText;
+              if (place === 1) {
+                mailText = `Ahoj ${nick}!\n\nGratulujeme k 1. místu v sezóně „${seasonLabel}“ (${catLabel}) s výsledkem ${sc} ran. Přijďte se k nám zastavit pro vyzvednutí odměny!`;
+              } else {
+                mailText = `Ahoj ${nick}!\n\nGratulujeme k dokončení sezóny „${seasonLabel}“ (${catLabel}). Skončil jsi na ${place}. místě s výsledkem ${sc} ran. Děkujeme za účast!`;
+              }
+              try {
+                await sendMinigolfMail({
+                  to: em.trim(),
+                  subject:
+                    place === 1
+                      ? `Minigolf Liška — 1. místo v sezóně (${catLabel})`
+                      : `Minigolf Liška — konec sezóny (${catLabel})`,
+                  text: `${mailText}\n\n— Minigolf Liška`,
+                });
+              } catch (err) {
+                console.error("sendMinigolfMail end season", cat, em, err);
+              }
+            }
+          }
+        }
+
         const season = { ...prev, active: false };
         await redis.set(SEASON_KEY, season);
         return res.status(200).json({ ok: true, season });
@@ -123,20 +164,6 @@ export default async function handler(req, res) {
           const merged = mergeHistoryWithSeason(histList, seasonList);
           await writeList(redis, hKey, merged);
           await writeList(redis, sKey, []);
-
-          const w = winnerFromSeasonList(seasonList);
-          if (w?.email && typeof w.email === "string" && w.email.includes("@")) {
-            const catLabel = cat === "do15" ? "Do 15 let" : "Od 15 let";
-            try {
-              await sendMinigolfMail({
-                to: w.email.trim(),
-                subject: `Minigolf Liška — výhra v sezóně (${catLabel})`,
-                text: `Ahoj ${nickFrom(w)}!\n\nGratulujeme k 1. místu v sezóně „${label}“ (${catLabel}) s výsledkem ${scoreFrom(w)} ran.\n\nPřijďte se k nám zastavit pro vyzvednutí odměny!\n\n— Minigolf Liška`,
-              });
-            } catch (err) {
-              console.error("sendMinigolfMail winner", cat, err);
-            }
-          }
         }
 
         await redis.del("scores").catch(() => {});

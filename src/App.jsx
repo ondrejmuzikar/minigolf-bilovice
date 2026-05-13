@@ -31,6 +31,7 @@ function rowToView(r) {
     note: r["poznámka"] ?? r.note ?? "",
     date: r["datum"] ?? r.date ?? "",
     email: typeof r.email === "string" ? r.email : "",
+    emailOdběr: r.emailOdběr === true ? true : r.emailOdběr === false ? false : undefined,
   };
 }
 
@@ -47,6 +48,8 @@ function viewToApiRow(v) {
     if (v.email.includes("@")) row.email = v.email.trim();
     else row.email = "";
   }
+  if (v.emailOdběr === true) row.emailOdběr = true;
+  if (v.emailOdběr === false) row.emailOdběr = false;
   return row;
 }
 
@@ -204,7 +207,7 @@ function NewSeasonModal({ onSave, onCancel }) {
           <label className="text-xs font-bold text-[#4A4A4A] uppercase tracking-wider">Konec sezóny</label>
           <input type="date" className={inputCls + " mt-1"} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </div>
-        <p className="text-xs text-[#4A4A4A] mb-5">Sezónní výsledky se zapíší do historického žebříčku. Vítězové s emailem dostanou zprávu.</p>
+        <p className="text-xs text-[#4A4A4A] mb-5">Sezónní výsledky se zapíší do historického žebříčku. Po ukončení sezóny dostanou e-mailem zprávu hráči s e-mailem a odběrem upozornění.</p>
         <div className="flex gap-2">
           <button type="button" onClick={onCancel} className="flex-1 py-3 rounded-xl font-bold text-[#4A4A4A] bg-gray-100">Zrušit</button>
           <button type="button" onClick={go} className="flex-1 py-3 rounded-xl font-bold text-white bg-[#E8621A]">Zahájit</button>
@@ -252,31 +255,39 @@ function EditPlayerModal({ player, onSave, onCancel }) {
   );
 }
 
-// Barvy karet podle kategorie a pořadí
+// Barvy karet: první tři místa vždy zlato/stříbro/bronz (medaile); šedý motiv jen od 4. místa u „Od 15 let“.
 function rankCardStyle(rank, category) {
-  const isOd15 = category === "od15";
-  if (rank === 0) return { backgroundColor: isOd15 ? "#9E9E9E" : C.gold };
-  if (rank === 1) return { backgroundColor: isOd15 ? "#BDBDBD" : C.silver };
-  if (rank === 2) return { backgroundColor: isOd15 ? "#757575" : C.bronze };
+  if (rank === 0) return { backgroundColor: C.gold };
+  if (rank === 1) return { backgroundColor: C.silver };
+  if (rank === 2) return { backgroundColor: C.bronze };
   return { backgroundColor: C.card };
 }
 
 function rankCardClass(rank, category) {
+  if (rank === 0) return "border-2 border-amber-700 text-[#333]";
+  if (rank === 1) return "border-2 border-gray-400 text-[#333]";
+  if (rank === 2) return "border-2 border-amber-800 text-[#333]";
   const isOd15 = category === "od15";
-  if (rank === 0) return `border-2 ${isOd15 ? "border-gray-500" : "border-amber-700"} text-[#333]`;
-  if (rank === 1) return `border-2 ${isOd15 ? "border-gray-400" : "border-gray-400"} text-[#333]`;
-  if (rank === 2) return `border-2 ${isOd15 ? "border-gray-600" : "border-amber-800"} text-[#333]`;
-  return `border ${isOd15 ? "border-gray-300" : "border-gray-300"} bg-white text-[#333]`;
+  return `border-2 ${isOd15 ? "border-gray-400" : "border-gray-200"} bg-white text-[#333]`;
 }
+
+const MEDALS = ["🥇", "🥈", "🥉"];
 
 function PlayerCard({ player, rank, isAdmin, onDelete, onEdit, category }) {
   const top = rank < 3;
+  const rankCell = top ? (
+    <span className="text-2xl leading-none w-10 text-center shrink-0 inline-block" role="img" aria-label={`${rank + 1}. místo`}>
+      {MEDALS[rank]}
+    </span>
+  ) : (
+    <div className="text-xl font-black w-10 text-center shrink-0 text-[#4A4A4A]">{rank + 1}.</div>
+  );
   return (
     <div
       style={rankCardStyle(rank, category)}
       className={`flex items-center gap-3 rounded-2xl px-4 py-3 mb-3 transition-shadow ${rankCardClass(rank, category)} ${top ? "shadow-md" : ""}`}
     >
-      <div className={`text-xl font-black w-10 text-center shrink-0 ${top ? "text-[#333]" : "text-[#4A4A4A]"}`}>{rank + 1}.</div>
+      {rankCell}
       <div className="flex-1 min-w-0">
         <div className="font-bold text-base truncate text-[#333]">
           {player.nick}
@@ -364,7 +375,10 @@ function ScoresBoard({ category, isAdmin, season, themeColor }) {
     const email = form.wantsEmail ? form.email.trim() : "";
     try {
       const body = { category, id, přezdívka: nick, skóre: score, kolo, poznámka };
-      if (email && email.includes("@")) body.email = email;
+      if (email && email.includes("@")) {
+        body.email = email;
+        body.emailOdběr = true;
+      }
       const r = await api.postScore(body);
       applyLists(r);
       if (r.changed) flash$(`✅ ${nick} — ${score} ran!`);
@@ -664,12 +678,12 @@ export default function App() {
               className="w-24 h-24 object-contain"
               draggable={false}
             />
-           <img 
-  src="/logo-text.png" 
-  alt="Minigolf Liška" 
-  className="h-12 w-auto object-contain mb-2" 
-  draggable={false}
-/>
+            <img
+              src="/logo-text.png"
+              alt="Minigolf Liška"
+              className="h-12 w-auto object-contain mb-2"
+              draggable={false}
+            />
           </div>
           <p className="text-sm font-semibold text-[#4A4A4A] mt-1">Žebříček · Lužánky</p>
         </header>
